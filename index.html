@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>eXtra | Qatar Warehouse Market Overview</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html,body{height:100%;margin:0;font-family:Arial,Helvetica,sans-serif;background:#f5f6f8;color:#111827}
+  .app{display:grid;grid-template-columns:390px 1fr;height:100%}
+  .side{background:#fff;padding:20px;overflow:auto;border-right:1px solid #e5e7eb}
+  .brand{font-size:11px;font-weight:700;letter-spacing:.08em;color:#667085;text-transform:uppercase;margin-bottom:5px}
+  h1{font-size:21px;margin:0;color:#17365D}
+  .sub{font-size:12px;color:#667085;line-height:1.45;margin:6px 0 14px}
+  .offer{background:#eef3f8;border:1px solid #d7e2ec;padding:12px;border-radius:10px;margin-bottom:15px;font-size:13px;line-height:1.4}
+  .offer .title{font-weight:700;color:#17365D;margin-bottom:4px}
+  #search{width:100%;box-sizing:border-box;padding:10px 11px;border:1px solid #d0d5dd;border-radius:8px;margin-bottom:12px}
+  .legend{display:grid;gap:7px;margin-bottom:14px;font-size:12px}
+  .legend-row{display:flex;align-items:center;gap:8px}
+  .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .list{display:grid;gap:7px}
+  .item{border:1px solid #e5e7eb;border-radius:9px;padding:9px 10px;cursor:pointer;background:#fff}
+  .item:hover{background:#f8fafc}
+  .item-name{font-size:13px;font-weight:700}
+  .item-meta{font-size:11px;color:#667085;margin-top:3px}
+  .price-chip{display:inline-block;margin-top:5px;padding:2px 7px;border-radius:999px;background:#f2f4f7;font-size:10px;color:#344054}
+  #map{height:100%}
+  .marker{width:25px;height:25px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
+  .popup{min-width:270px}
+  .popup h3{margin:0 0 6px;font-size:15px;color:#17365D}
+  .popup p{margin:4px 0;font-size:12px;line-height:1.4}
+  .pricebox{margin-top:8px;border:1px solid #e4e7ec;border-radius:8px;overflow:hidden}
+  .pricehead{background:#f8fafc;padding:7px 8px;font-weight:700;font-size:11px;color:#344054}
+  .prow{display:grid;grid-template-columns:1.1fr .8fr .8fr .8fr;font-size:11px;border-top:1px solid #f0f1f3}
+  .prow>div{padding:6px 7px}
+  .prow .lbl{font-weight:700;color:#475467}
+  .muted{font-size:10px;color:#667085;margin-top:6px;line-height:1.35}
+  .badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;background:#f2f4f7;color:#475467;margin-top:5px}
+  .popup a{display:inline-block;margin-top:8px;text-decoration:none;color:#0b57d0;font-weight:700;font-size:12px}
+  .foot{margin-top:14px;font-size:10px;color:#98a2b3;line-height:1.45}
+  @media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:45% 55%}.side{border-right:none;border-bottom:1px solid #ddd}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="side">
+  <div class="brand">eXtra Real Estate</div>
+  <h1>Qatar Warehouse Market Overview</h1>
+  <div class="sub">Industrial, logistics and warehousing locations. Market pricing reflects current asking-rent samples and is shown for comparison only.</div>
+  <div class="offer">
+    <div class="title">Mall of Qatar – Reference Offer</div>
+    Area: <b>742 sqm</b><br>
+    Asking rate: <b>QAR 65/sqm/month</b><br>
+    Monthly total: <b>QAR 48,230</b><br>
+    Annual total: <b>QAR 578,760</b>
+  </div>
+  <input id="search" placeholder="Search a location..." />
+  <div class="legend" id="legend"></div>
+  <div class="list" id="list"></div>
+  <div class="foot">Pricing basis: current asking rents, September 2026. Benchmark totals assume 1,000 sqm. Asking rents are not concluded lease transactions.<br><br>
+Map: Esri World Street Map.</div>
+</aside>
+<div id="map"></div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const locations=[{"name": "Industrial Area (Doha)", "group": "Industrial Zones", "lat": 25.205, "lon": 51.432, "pin": "reference", "note": "Main Doha industrial area; broad-area reference pin.", "pricing": {"min": 15.0, "avg": 21.01, "max": 29.17, "n": 6, "status": "Verified market sample", "period": "Sep 2026"}}, {"name": "Small & Medium Industries Zone", "group": "Industrial Zones", "lat": 25.184, "lon": 51.431, "pin": "reference", "note": "Official Manateq industrial-zone listing; broad-area reference pin.", "pricing": null}, {"name": "Al Khor Industrial Zone", "group": "Industrial Zones", "lat": 25.676, "lon": 51.493, "pin": "reference", "note": "Official Manateq industrial-zone listing; broad-area reference pin.", "pricing": null}, {"name": "Al Karaana Industrial Zone", "group": "Industrial Zones", "lat": 25.012, "lon": 51.046, "pin": "reference", "note": "Official Manateq industrial-zone listing; broad-area reference pin.", "pricing": null}, {"name": "Mesaieed Industrial Zone", "group": "Industrial Zones", "lat": 24.994, "lon": 51.548, "pin": "reference", "note": "Industrial warehouse sample from current Mesaieed listings.", "pricing": {"min": 7.23, "avg": 10.37, "max": 18.5, "n": 7, "status": "Verified market sample", "period": "Sep 2026"}}, {"name": "Birkat Al Awamer Logistics Park", "group": "Southern Logistics", "lat": 25.0762, "lon": 51.4901, "pin": "reference", "note": "Official Manateq logistics park. Pricing based on current warehouse listings ≥1,000 sqm.", "pricing": {"min": 13.5, "avg": 23.81, "max": 37.5, "n": 7, "status": "Verified market sample", "period": "Sep 2026"}}, {"name": "Aba Saleel Logistics Park", "group": "Southern Logistics", "lat": 25.12935, "lon": 51.41548, "pin": "verified", "note": "Official Manateq logistics park; pricing based on current listings ≥1,000 sqm.", "pricing": {"min": 17.5, "avg": 23.88, "max": 30.0, "n": 4, "status": "Verified market sample", "period": "Sep 2026"}}, {"name": "Al Wakra Logistics Park", "group": "Southern Logistics", "lat": 25.171, "lon": 51.521, "pin": "reference", "note": "Official Manateq logistics park; broad-area reference pin.", "pricing": null}, {"name": "Al Wukair Warehousing Park", "group": "Southern Warehousing", "lat": 25.159, "lon": 51.449, "pin": "reference", "note": "Current market evidence is limited to one 1,000 sqm listing.", "pricing": {"min": 19.0, "avg": 19.0, "max": 19.0, "n": 1, "status": "Limited sample", "period": "Sep 2026"}}, {"name": "Bu Sulba Warehousing Park", "group": "Southern Warehousing", "lat": 25.07943, "lon": 51.45678, "pin": "verified", "note": "Official Manateq-supported warehousing park; mapped location verified.", "pricing": null}, {"name": "Umm Salal Ali", "group": "Northern Parks", "lat": 25.4695, "lon": 51.397, "pin": "reference", "note": "Northern warehouse market reference. Listings quote QAR/sqm/month.", "pricing": {"min": 30.0, "avg": 31.67, "max": 35.0, "n": 3, "status": "Verified market sample", "period": "Sep 2026"}}, {"name": "Jery Al Samur Logistics Park", "group": "Northern Parks", "lat": 25.41581, "lon": 51.34789, "pin": "verified", "note": "Official Manateq logistics park. No clean, location-specific current sample retained because some listings are mis-geotagged.", "pricing": null}, {"name": "Bu Fesseela Warehousing Park", "group": "Northern Parks", "lat": 25.42602, "lon": 51.39082, "pin": "verified", "note": "Official Manateq-supported warehousing park; mapped location verified.", "pricing": null}, {"name": "Umm Shaharaine 1 Warehousing Park", "group": "Northern Parks", "lat": 25.39609, "lon": 51.35709, "pin": "verified", "note": "Official Manateq-supported warehousing park; mapped location verified.", "pricing": null}, {"name": "Umm Shaharaine 2 Warehousing Park", "group": "Northern Parks", "lat": 25.3978, "lon": 51.3735, "pin": "reference", "note": "Official Manateq-supported warehousing park; nearby reference pin pending exact entrance confirmation.", "pricing": null}, {"name": "Mall of Qatar", "group": "Reference", "lat": 25.32666, "lon": 51.34988, "pin": "verified", "note": "Reference offer from Mall of Qatar.", "special": "mall", "offer": {"area": 742, "rate": 65, "monthly": 48230, "annual": 578760}}, {"name": "Hamad Port", "group": "Reference", "lat": 25.02985, "lon": 51.61901, "pin": "verified", "note": "Reference point for logistics accessibility.", "special": "port", "pricing": null}];
+const colors={"Industrial Zones": "#F28C28", "Southern Logistics": "#2E8B57", "Southern Warehousing": "#1C9A9A", "Northern Parks": "#7A4FB3", "Reference": "#17365D"};
+
+const map=L.map('map',{zoomControl:true}).setView([25.24,51.42],9);
+
+/* Esri World Street Map raster basemap.
+   Uses standard Leaflet tiles and avoids OpenFreeMap's localized-label styling. */
+L.tileLayer(
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+  {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+  }
+).addTo(map);
+
+const markers={};
+const money=v=>Math.round(v).toLocaleString('en-US');
+const dec=v=>Number(v).toFixed(2);
+
+function icon(loc){
+ let s='●';
+ if(loc.special==='mall')s='★'; else if(loc.special==='port')s='⚓';
+ else if(loc.group.includes('Warehousing'))s='▣';
+ else if(loc.group.includes('Logistics')||loc.group.includes('Northern'))s='◆';
+ return L.divIcon({className:'',html:`<div class="marker" style="background:${colors[loc.group]}">${s}</div>`,iconSize:[29,29],iconAnchor:[14,14],popupAnchor:[0,-14]});
+}
+function gmaps(loc){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(loc.name+', Qatar');}
+
+function pricingHTML(loc){
+ if(loc.offer){
+   return `<div class="pricebox"><div class="pricehead">Reference offer</div>
+   <div class="prow"><div class="lbl">Rate</div><div colspan="3">QAR ${loc.offer.rate}/sqm/month</div><div></div><div></div></div>
+   <div class="prow"><div class="lbl">Monthly</div><div>QAR ${money(loc.offer.monthly)}</div><div></div><div></div></div>
+   <div class="prow"><div class="lbl">Annual</div><div>QAR ${money(loc.offer.annual)}</div><div></div><div></div></div></div>`;
+ }
+ const p=loc.pricing;
+ if(!p) return `<div class="badge">Pricing not yet verified</div>`;
+ const amin=p.min*12,aavg=p.avg*12,amax=p.max*12;
+ return `<div class="pricebox">
+   <div class="pricehead">Market asking rent · ${p.period} · n=${p.n}</div>
+   <div class="prow"><div class="lbl"></div><div><b>Low</b></div><div><b>Avg</b></div><div><b>High</b></div></div>
+   <div class="prow"><div class="lbl">QAR/sqm/month</div><div>${dec(p.min)}</div><div>${dec(p.avg)}</div><div>${dec(p.max)}</div></div>
+   <div class="prow"><div class="lbl">QAR/sqm/year</div><div>${dec(amin)}</div><div>${dec(aavg)}</div><div>${dec(amax)}</div></div>
+   <div class="prow"><div class="lbl">1,000 sqm / month</div><div>${money(p.min*1000)}</div><div>${money(p.avg*1000)}</div><div>${money(p.max*1000)}</div></div>
+   <div class="prow"><div class="lbl">1,000 sqm / year</div><div>${money(amin*1000)}</div><div>${money(aavg*1000)}</div><div>${money(amax*1000)}</div></div>
+ </div><div class="muted">${p.status}. Asking rents, not executed lease evidence.</div>`;
+}
+
+locations.forEach(loc=>{
+ const m=L.marker([loc.lat,loc.lon],{icon:icon(loc)}).addTo(map);
+ m.bindPopup(`<div class="popup"><h3>${loc.name}</h3><p><b>Category:</b> ${loc.group}</p><p>${loc.note}</p>${pricingHTML(loc)}<br><a href="${gmaps(loc)}" target="_blank" rel="noopener">Open in Google Maps ↗</a></div>`,{maxWidth:360});
+ markers[loc.name]=m;
+});
+
+const legend=document.getElementById('legend');
+Object.entries(colors).forEach(([g,c])=>legend.insertAdjacentHTML('beforeend',`<div class="legend-row"><span class="dot" style="background:${c}"></span><span>${g}</span></div>`));
+
+const list=document.getElementById('list');
+function render(q=''){
+ q=q.toLowerCase().trim(); list.innerHTML='';
+ locations.filter(x=>!q||x.name.toLowerCase().includes(q)||x.group.toLowerCase().includes(q)).forEach(loc=>{
+  let ptxt=loc.offer?`Reference: QAR ${loc.offer.rate}/sqm/mo`:loc.pricing?`Avg: QAR ${dec(loc.pricing.avg)}/sqm/mo`:'Pricing not yet verified';
+  const el=document.createElement('div'); el.className='item';
+  el.innerHTML=`<div class="item-name">${loc.name}</div><div class="item-meta">${loc.group}</div><span class="price-chip">${ptxt}</span>`;
+  el.onclick=()=>{map.setView([loc.lat,loc.lon],Math.max(map.getZoom(),13));markers[loc.name].openPopup();};
+  list.appendChild(el);
+ });
+}
+render();
+document.getElementById('search').addEventListener('input',e=>render(e.target.value));
+map.fitBounds(L.latLngBounds(locations.map(x=>[x.lat,x.lon])).pad(.08));
+</script>
+</body>
+</html>
